@@ -1,0 +1,8 @@
+# WorkLink Robots Exclusion Protocol
+User-agent: *
+Allow: /
+Allow: /api/health
+Disallow: /api/
+Disallow: /uploads/cv/
+
+Sitemap: https://worklink.vn/sitemap.xml

@@ -1,0 +1,54 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment & Secret files
+.env
+.env*.local
+
+# Database
+database/*.sqlite
+database/*.sqlite-journal
+database/*.db
+*.sqlite
+*.sqlite-journal
+
+# Archives & Temporary zips
+*.zip
+*.tar.gz
+*.rar
+
+# Uploads directory
+uploads/
+uploads/cv/
+
+# Temporary CV upload directory (files are deleted after processing, but guard against crash leftovers)
+tmp/
+tmp/cv-uploads/
+
+# Backup DB, script nháp, kết quả test
+backups/
+scratch/
+test-results/
+playwright-report/

@@ -6,6 +6,7 @@ RUN npm ci
 COPY index.html vite.config.js ./
 COPY public/ ./public/
 COPY src/ ./src/
+COPY shared/ ./shared/
 # Để trống VITE_API_URL => frontend gọi API cùng domain (same-origin)
 RUN npm run build
 

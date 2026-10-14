@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
-import { 
-  X, 
-  MapPin, 
-  Award, 
-  CheckCircle2, 
-  Send, 
-  Bookmark, 
-  Share2, 
+import React, { useState } from "react";
+import { useApp } from "../context/AppContext";
+import {
+  X,
+  MapPin,
+  Award,
+  CheckCircle2,
+  Send,
+  Bookmark,
+  Share2,
   ShieldCheck,
   Building2,
   Sparkles,
@@ -16,19 +16,35 @@ import {
   ExternalLink,
   Edit3,
   Trash2,
-  RotateCcw
-} from 'lucide-react';
-import { getRecommendedJobs } from '../services/recommendationEngine';
-import { soundFx } from '../services/soundEffects';
-import { apiSubmitRating } from '../services/api';
+  RotateCcw,
+} from "lucide-react";
+import { getRecommendedJobs } from "../services/recommendationEngine";
+import { soundFx } from "../services/soundEffects";
+import { apiSubmitRating } from "../services/api";
 
+// Chuẩn hóa: chấp nhận mảng, chuỗi JSON, chuỗi phân tách bằng dấu phẩy/xuống dòng, hoặc rỗng
+const toList = (value) => {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== "string" || !value.trim()) return [];
+  const text = value.trim();
+  if (text.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {}
+  }
+  return text
+    .split(/[\n,;]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+};
 export default function JobDetailModal() {
-  const { 
-    selectedJobForDetail, 
-    setSelectedJobForDetail, 
-    setSelectedJobForApply, 
+  const {
+    selectedJobForDetail,
+    setSelectedJobForDetail,
+    setSelectedJobForApply,
     setActiveChatRecipient,
-    savedJobIds, 
+    savedJobIds,
     toggleSaveJob,
     applications,
     jobs,
@@ -38,33 +54,44 @@ export default function JobDetailModal() {
     deleteJob,
     setEditingJob,
     withdrawApplication,
-    showToast 
+    showToast,
   } = useApp();
 
   const [ratingStars, setRatingStars] = useState(0);
   const [ratingHover, setRatingHover] = useState(0);
-  const [ratingComment, setRatingComment] = useState('');
+  const [ratingComment, setRatingComment] = useState("");
   const [ratingTags, setRatingTags] = useState([]);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
-  const RATING_TAGS = ['Đúng giờ', 'Thân thiện', 'Minh bạch', 'Lương đúng hẹn', 'Môi trường tốt', 'Phỏng vấn nhanh'];
+  const RATING_TAGS = [
+    "Đúng giờ",
+    "Thân thiện",
+    "Minh bạch",
+    "Lương đúng hẹn",
+    "Môi trường tốt",
+    "Phỏng vấn nhanh",
+  ];
 
   if (!selectedJobForDetail) return null;
 
   const job = selectedJobForDetail;
   const isSaved = savedJobIds.includes(job.id);
-  const isApplied = applications.some(app => app.jobId === job.id);
-  const isMyJob = currentUser?.role === 'employer' && Boolean(currentUser?.id) && (
-    (Boolean(job.employerId) && job.employerId === currentUser.id) ||
-    (Boolean(job.employer_id) && job.employer_id === currentUser.id) ||
-    (Boolean(job.company) && Boolean(currentUser?.name) && job.company.trim().toLowerCase() === currentUser.name.trim().toLowerCase())
-  );
-  const isAdmin = currentUser?.role === 'admin';
+  const isApplied = applications.some((app) => app.jobId === job.id);
+  const isMyJob =
+    currentUser?.role === "employer" &&
+    Boolean(currentUser?.id) &&
+    ((Boolean(job.employerId) && job.employerId === currentUser.id) ||
+      (Boolean(job.employer_id) && job.employer_id === currentUser.id) ||
+      (Boolean(job.company) &&
+        Boolean(currentUser?.name) &&
+        job.company.trim().toLowerCase() ===
+          currentUser.name.trim().toLowerCase()));
+  const isAdmin = currentUser?.role === "admin";
 
   const similarJobs = getRecommendedJobs(jobs, userHistory, job.id).slice(0, 2);
 
   const handleShare = () => {
     navigator.clipboard?.writeText(window.location.href);
-    showToast('Đã sao chép liên kết công việc vào khay nhớ tạm!');
+    showToast("Đã sao chép liên kết công việc vào khay nhớ tạm!");
   };
 
   const handleApply = () => {
@@ -73,11 +100,11 @@ export default function JobDetailModal() {
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn"
       onClick={() => setSelectedJobForDetail(null)}
     >
-      <div 
+      <div
         className="relative w-full max-w-3xl max-h-[90vh] bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
@@ -88,7 +115,7 @@ export default function JobDetailModal() {
               {job.category}
             </span>
             <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-300">
-              {job.jobType === 'PART_TIME' ? 'Part-time' : job.jobType}
+              {job.jobType === "PART_TIME" ? "Part-time" : job.jobType}
             </span>
           </div>
 
@@ -102,11 +129,10 @@ export default function JobDetailModal() {
 
         {/* Modal Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          
           {/* Main Title & Recruiter */}
           <div className="flex items-start gap-4">
             <div className="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-3xl flex-shrink-0 shadow-lg">
-              {job.companyLogo || '💼'}
+              {job.companyLogo || "💼"}
             </div>
             <div className="flex-1">
               <h2 className="text-xl sm:text-2xl font-extrabold text-white mb-1">
@@ -129,20 +155,36 @@ export default function JobDetailModal() {
           {/* Key Specs Card Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-slate-950/60 border border-slate-800">
             <div>
-              <span className="text-[11px] font-medium text-slate-400 block mb-0.5">Mức lương</span>
-              <p className="text-sm font-bold text-indigo-300">{job.salaryDisplay}</p>
+              <span className="text-[11px] font-medium text-slate-400 block mb-0.5">
+                Mức lương
+              </span>
+              <p className="text-sm font-bold text-indigo-300">
+                {job.salaryDisplay}
+              </p>
             </div>
             <div>
-              <span className="text-[11px] font-medium text-slate-400 block mb-0.5">Địa điểm</span>
-              <p className="text-sm font-bold text-white truncate">{job.district}, {job.city}</p>
+              <span className="text-[11px] font-medium text-slate-400 block mb-0.5">
+                Địa điểm
+              </span>
+              <p className="text-sm font-bold text-white truncate">
+                {job.district}, {job.city}
+              </p>
             </div>
             <div>
-              <span className="text-[11px] font-medium text-slate-400 block mb-0.5">Ca làm việc</span>
-              <p className="text-sm font-bold text-white">{job.timeShift} ({job.timeHours})</p>
+              <span className="text-[11px] font-medium text-slate-400 block mb-0.5">
+                Ca làm việc
+              </span>
+              <p className="text-sm font-bold text-white">
+                {job.timeShift} ({job.timeHours})
+              </p>
             </div>
             <div>
-              <span className="text-[11px] font-medium text-slate-400 block mb-0.5">Số lượng tuyển</span>
-              <p className="text-sm font-bold text-white">{job.slots || 2} người</p>
+              <span className="text-[11px] font-medium text-slate-400 block mb-0.5">
+                Số lượng tuyển
+              </span>
+              <p className="text-sm font-bold text-white">
+                {job.slots || 2} người
+              </p>
             </div>
           </div>
 
@@ -150,7 +192,10 @@ export default function JobDetailModal() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-300 bg-slate-800/40 p-3.5 rounded-xl border border-slate-800">
             <div className="flex items-start gap-2 min-w-0">
               <MapPin className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
-              <span><strong>Địa chỉ làm việc:</strong> {job.address || `${job.district}, Hà Nội`}</span>
+              <span>
+                <strong>Địa chỉ làm việc:</strong>{" "}
+                {job.address || `${job.district}, Hà Nội`}
+              </span>
             </div>
             <a
               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.address ? `${job.address}, Hà Nội` : `${job.company}, ${job.district}, Hà Nội`)}`}
@@ -182,7 +227,7 @@ export default function JobDetailModal() {
               Yêu cầu ứng viên
             </h4>
             <ul className="space-y-2 text-sm text-slate-300">
-              {job.requirements?.map((req, idx) => (
+              {toList(job.requirements).map((req, idx) => (
                 <li key={idx} className="flex items-start gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 flex-shrink-0" />
                   <span>{req}</span>
@@ -198,7 +243,7 @@ export default function JobDetailModal() {
               Quyền lợi & Đãi ngộ
             </h4>
             <ul className="space-y-2 text-sm text-slate-300">
-              {job.benefits?.map((ben, idx) => (
+              {toList(job.benefits).map((ben, idx) => (
                 <li key={idx} className="flex items-start gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-2 flex-shrink-0" />
                   <span>{ben}</span>
@@ -215,19 +260,30 @@ export default function JobDetailModal() {
                 WorkLink AI • Phân tích độ phù hợp của bạn
               </span>
               <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-extrabold">
-                {job.matchScore ? `${job.matchScore}% Phù hợp` : '88% Phù hợp'}
+                {job.matchScore ? `${job.matchScore}% Phù hợp` : "88% Phù hợp"}
               </span>
             </div>
 
             <div className="space-y-2 text-xs">
               <div className="flex items-start gap-2 text-slate-300">
-                <span className="text-emerald-400 font-bold flex-shrink-0">✓ Điểm cộng:</span>
-                <span>Hồ sơ của bạn (Khu vực {userProfile?.district || 'Hà Nội'}, rảnh {userProfile?.preferredShift || 'linh hoạt'}) khớp hoàn toàn với vị trí này.</span>
+                <span className="text-emerald-400 font-bold flex-shrink-0">
+                  ✓ Điểm cộng:
+                </span>
+                <span>
+                  Hồ sơ của bạn (Khu vực {userProfile?.district || "Hà Nội"},
+                  rảnh {userProfile?.preferredShift || "linh hoạt"}) khớp hoàn
+                  toàn với vị trí này.
+                </span>
               </div>
 
               <div className="flex items-start gap-2 text-slate-300">
-                <span className="text-amber-400 font-bold flex-shrink-0">💡 Gợi ý phỏng vấn:</span>
-                <span>Nên nhấn mạnh tinh thần đúng giờ, kỹ năng giao tiếp niềm nở và sẵn sàng đổi ca linh hoạt vào mùa thi.</span>
+                <span className="text-amber-400 font-bold flex-shrink-0">
+                  💡 Gợi ý phỏng vấn:
+                </span>
+                <span>
+                  Nên nhấn mạnh tinh thần đúng giờ, kỹ năng giao tiếp niềm nở và
+                  sẵn sàng đổi ca linh hoạt vào mùa thi.
+                </span>
               </div>
             </div>
           </div>
@@ -235,20 +291,25 @@ export default function JobDetailModal() {
           {/* Similar Jobs Recommendation */}
           {similarJobs.length > 0 && (
             <div className="pt-4 border-t border-slate-800">
-
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
                 Việc làm tương tự có thể bạn quan tâm:
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {similarJobs.map(sim => (
+                {similarJobs.map((sim) => (
                   <div
                     key={sim.id}
                     onClick={() => setSelectedJobForDetail(sim)}
                     className="p-3 rounded-xl bg-slate-950/60 hover:bg-slate-800/60 border border-slate-800 cursor-pointer transition-colors"
                   >
-                    <p className="text-xs font-bold text-white truncate">{sim.title}</p>
-                    <p className="text-[11px] text-slate-400 truncate">{sim.company} • {sim.district}</p>
-                    <p className="text-[11px] font-semibold text-indigo-300 mt-1">{sim.salaryDisplay}</p>
+                    <p className="text-xs font-bold text-white truncate">
+                      {sim.title}
+                    </p>
+                    <p className="text-[11px] text-slate-400 truncate">
+                      {sim.company} • {sim.district}
+                    </p>
+                    <p className="text-[11px] font-semibold text-indigo-300 mt-1">
+                      {sim.salaryDisplay}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -260,14 +321,16 @@ export default function JobDetailModal() {
             <div className="p-5 rounded-2xl bg-slate-950/80 border border-amber-500/20">
               <h4 className="text-sm font-black text-white mb-3 flex items-center gap-2">
                 <Star className="w-4 h-4 text-amber-400" />
-                {ratingSubmitted ? 'Cảm ơn bạn đã đánh giá! 🎉' : 'Đánh giá nhà tuyển dụng này'}
+                {ratingSubmitted
+                  ? "Cảm ơn bạn đã đánh giá! 🎉"
+                  : "Đánh giá nhà tuyển dụng này"}
               </h4>
 
               {!ratingSubmitted ? (
                 <>
                   {/* Stars */}
                   <div className="flex items-center gap-1 mb-3">
-                    {[1,2,3,4,5].map(s => (
+                    {[1, 2, 3, 4, 5].map((s) => (
                       <button
                         key={s}
                         onClick={() => setRatingStars(s)}
@@ -277,28 +340,40 @@ export default function JobDetailModal() {
                       >
                         <Star
                           className={`w-7 h-7 transition-colors ${
-                            s <= (ratingHover || ratingStars) ? 'text-amber-400 fill-amber-400' : 'text-slate-600'
+                            s <= (ratingHover || ratingStars)
+                              ? "text-amber-400 fill-amber-400"
+                              : "text-slate-600"
                           }`}
                         />
                       </button>
                     ))}
                     {ratingStars > 0 && (
                       <span className="ml-2 text-xs text-amber-400 font-bold">
-                        {['', 'Rất tệ', 'Tệ', 'Ổn', 'Tốt', 'Xuất sắc'][ratingStars]}
+                        {
+                          ["", "Rất tệ", "Tệ", "Ổn", "Tốt", "Xuất sắc"][
+                            ratingStars
+                          ]
+                        }
                       </span>
                     )}
                   </div>
 
                   {/* Tags */}
                   <div className="flex flex-wrap gap-1.5 mb-3">
-                    {RATING_TAGS.map(tag => (
+                    {RATING_TAGS.map((tag) => (
                       <button
                         key={tag}
-                        onClick={() => setRatingTags(prev => prev.includes(tag) ? prev.filter(t=>t!==tag) : [...prev, tag])}
+                        onClick={() =>
+                          setRatingTags((prev) =>
+                            prev.includes(tag)
+                              ? prev.filter((t) => t !== tag)
+                              : [...prev, tag],
+                          )
+                        }
                         className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
                           ratingTags.includes(tag)
-                            ? 'bg-amber-500/30 border border-amber-500/50 text-amber-300'
-                            : 'bg-slate-800 border border-slate-700 text-slate-400 hover:border-amber-500/30'
+                            ? "bg-amber-500/30 border border-amber-500/50 text-amber-300"
+                            : "bg-slate-800 border border-slate-700 text-slate-400 hover:border-amber-500/30"
                         }`}
                       >
                         {tag}
@@ -309,7 +384,7 @@ export default function JobDetailModal() {
                   {/* Comment */}
                   <textarea
                     value={ratingComment}
-                    onChange={e => setRatingComment(e.target.value)}
+                    onChange={(e) => setRatingComment(e.target.value)}
                     placeholder="Chia sẻ trải nghiệm của bạn (không bắt buộc)..."
                     rows={2}
                     className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-xs placeholder:text-slate-500 focus:outline-none focus:border-amber-500/50 resize-none mb-3"
@@ -322,15 +397,18 @@ export default function JobDetailModal() {
                       try {
                         await apiSubmitRating({
                           jobId: job.id,
-                          targetType: 'company',
+                          targetType: "company",
                           stars: ratingStars,
                           comment: ratingComment,
-                          tags: ratingTags
+                          tags: ratingTags,
                         });
                         setRatingSubmitted(true);
-                        showToast('Đã gửi đánh giá! Cảm ơn bạn 🌟', 'success');
+                        showToast("Đã gửi đánh giá! Cảm ơn bạn 🌟", "success");
                       } catch (err) {
-                        showToast(err.message || 'Không thể gửi đánh giá!', 'error');
+                        showToast(
+                          err.message || "Không thể gửi đánh giá!",
+                          "error",
+                        );
                       }
                     }}
                     className="w-full py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
@@ -345,7 +423,6 @@ export default function JobDetailModal() {
               )}
             </div>
           )}
-
         </div>
 
         {/* Sticky Action Footer */}
@@ -355,12 +432,12 @@ export default function JobDetailModal() {
               onClick={() => toggleSaveJob(job.id)}
               className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all ${
                 isSaved
-                  ? 'bg-indigo-600 text-white border-indigo-500 shadow-md'
-                  : 'bg-slate-800 text-slate-300 border-slate-700 hover:text-white'
+                  ? "bg-indigo-600 text-white border-indigo-500 shadow-md"
+                  : "bg-slate-800 text-slate-300 border-slate-700 hover:text-white"
               }`}
             >
-              <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-white' : ''}`} />
-              <span>{isSaved ? 'Đã lưu' : 'Lưu tin'}</span>
+              <Bookmark className={`w-4 h-4 ${isSaved ? "fill-white" : ""}`} />
+              <span>{isSaved ? "Đã lưu" : "Lưu tin"}</span>
             </button>
 
             <button
@@ -374,13 +451,15 @@ export default function JobDetailModal() {
             <button
               onClick={() => {
                 soundFx.playPop();
-                const myApp = applications?.find(a => 
-                  a.jobId === job.id && 
-                  (a.email === (currentUser?.email || userProfile?.email) || a.userId === currentUser?.id)
+                const myApp = applications?.find(
+                  (a) =>
+                    a.jobId === job.id &&
+                    (a.email === (currentUser?.email || userProfile?.email) ||
+                      a.userId === currentUser?.id),
                 );
-                const threadId = myApp 
+                const threadId = myApp
                   ? `thread_app_${myApp.id}`
-                  : `thread_job_${job.id}_${(currentUser?.id || userProfile?.email || 'seeker').replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+                  : `thread_job_${job.id}_${(currentUser?.id || userProfile?.email || "seeker").replace(/[^a-zA-Z0-9_-]/g, "_")}`;
 
                 setActiveChatRecipient({
                   company: job.company,
@@ -388,8 +467,9 @@ export default function JobDetailModal() {
                   jobId: job.id,
                   employerId: job.employerId || job.employer_id,
                   appId: myApp?.id || null,
-                  applicantName: currentUser?.name || userProfile?.name || 'Ứng viên',
-                  threadId
+                  applicantName:
+                    currentUser?.name || userProfile?.name || "Ứng viên",
+                  threadId,
                 });
                 setSelectedJobForDetail(null);
               }}
@@ -406,7 +486,11 @@ export default function JobDetailModal() {
             {isAdmin && (
               <button
                 onClick={() => {
-                  if (window.confirm(`Quản trị viên xác nhận gỡ bỏ bài đăng "${job.title}"?`)) {
+                  if (
+                    window.confirm(
+                      `Quản trị viên xác nhận gỡ bỏ bài đăng "${job.title}"?`,
+                    )
+                  ) {
                     deleteJob(job.id);
                     setSelectedJobForDetail(null);
                   }
@@ -439,7 +523,11 @@ export default function JobDetailModal() {
                 </button>
                 <button
                   onClick={() => {
-                    if (window.confirm(`Bạn có chắc chắn muốn xóa tin tuyển dụng "${job.title}"?`)) {
+                    if (
+                      window.confirm(
+                        `Bạn có chắc chắn muốn xóa tin tuyển dụng "${job.title}"?`,
+                      )
+                    ) {
                       deleteJob(job.id);
                       setSelectedJobForDetail(null);
                     }
@@ -460,18 +548,23 @@ export default function JobDetailModal() {
                 <button
                   onClick={() => {
                     soundFx.playPop();
-                    const myApp = applications.find(a => 
-                      a.jobId === job.id && (
-                        a.userId === currentUser?.id || 
-                        a.email === (currentUser?.email || userProfile?.email)
-                      )
+                    const myApp = applications.find(
+                      (a) =>
+                        a.jobId === job.id &&
+                        (a.userId === currentUser?.id ||
+                          a.email ===
+                            (currentUser?.email || userProfile?.email)),
                     );
                     if (myApp) {
-                      if (window.confirm(`Bạn có chắc chắn muốn hủy / rút hồ sơ ứng tuyển vào vị trí "${job.title}"?`)) {
+                      if (
+                        window.confirm(
+                          `Bạn có chắc chắn muốn hủy / rút hồ sơ ứng tuyển vào vị trí "${job.title}"?`,
+                        )
+                      ) {
                         withdrawApplication(myApp.id);
                       }
                     } else {
-                      showToast('Không tìm thấy hồ sơ để hủy', 'error');
+                      showToast("Không tìm thấy hồ sơ để hủy", "error");
                     }
                   }}
                   className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 hover:text-rose-200 text-xs font-bold transition-all cursor-pointer"
@@ -492,8 +585,6 @@ export default function JobDetailModal() {
             )}
           </div>
         </div>
-
-
       </div>
     </div>
   );

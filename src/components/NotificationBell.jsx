@@ -1,26 +1,50 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useApp } from '../context/AppContext';
-import { soundFx } from '../services/soundEffects';
-import { 
-  apiGetNotifications, 
-  apiMarkAllNotificationsRead, 
-  apiMarkNotificationRead 
-} from '../services/api';
-import { Bell, CheckCheck } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useApp } from "../context/AppContext";
+import { soundFx } from "../services/soundEffects";
+import {
+  apiGetNotifications,
+  apiMarkAllNotificationsRead,
+  apiMarkNotificationRead,
+} from "../services/api";
+import { Bell, CheckCheck } from "lucide-react";
 
 export default function NotificationBell({ onNavigateTab }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [serverNotifications, setServerNotifications] = useState([]);
   const [serverUnread, setServerUnread] = useState(0);
+  const panelRef = useRef(null);
 
-  const { 
-    currentUserRole, 
-    applications, 
+  // Đóng panel khi click ra ngoài hoặc nhấn Escape
+  useEffect(() => {
+    if (!showNotifications) return;
+
+    const onPointerDown = (e) => {
+      if (panelRef.current && !panelRef.current.contains(e.target)) {
+        setShowNotifications(false);
+      }
+    };
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setShowNotifications(false);
+    };
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("touchstart", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("touchstart", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [showNotifications]);
+
+  const {
+    currentUserRole,
+    applications,
     currentUser,
     jobs,
     setActiveTab,
     setActiveChatRecipient,
-    setSelectedJobForDetail
+    setSelectedJobForDetail,
   } = useApp();
 
   const navigateTab = (tab) => {
@@ -51,30 +75,35 @@ export default function NotificationBell({ onNavigateTab }) {
   }, [fetchNotifications]);
 
   // Fallback for guest or empty
-  const pendingApps = applications.filter(a => a.status === 'pending');
-  const fallbackNotifications = pendingApps.slice(0, 5).map(a => ({
+  const pendingApps = applications.filter((a) => a.status === "pending");
+  const fallbackNotifications = pendingApps.slice(0, 5).map((a) => ({
     id: a.id,
-    title: 'Hồ sơ mới',
+    title: "Hồ sơ mới",
     body: `${a.applicantName} ứng tuyển vị trí "${a.jobTitle}"`,
-    created_at: a.appliedAt || 'Vừa xong',
+    created_at: a.appliedAt || "Vừa xong",
     is_read: 0,
-    link_type: 'application'
+    link_type: "application",
   }));
 
-  const activeNotifications = currentUser && serverNotifications.length > 0
-    ? serverNotifications
-    : fallbackNotifications;
+  const activeNotifications =
+    currentUser && serverNotifications.length > 0
+      ? serverNotifications
+      : fallbackNotifications;
 
-  const totalUnreadCount = currentUser 
-    ? serverUnread 
-    : (currentUserRole === 'employer' ? pendingApps.length : 0);
+  const totalUnreadCount = currentUser
+    ? serverUnread
+    : currentUserRole === "employer"
+      ? pendingApps.length
+      : 0;
 
   const handleMarkAllRead = async () => {
     if (currentUser) {
       try {
         await apiMarkAllNotificationsRead();
         setServerUnread(0);
-        setServerNotifications(prev => prev.map(n => ({ ...n, is_read: 1 })));
+        setServerNotifications((prev) =>
+          prev.map((n) => ({ ...n, is_read: 1 })),
+        );
       } catch {}
     } else {
       setServerUnread(0);
@@ -86,25 +115,29 @@ export default function NotificationBell({ onNavigateTab }) {
     if (currentUser && !notif.is_read) {
       try {
         await apiMarkNotificationRead(notif.id);
-        setServerNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: 1 } : n));
-        setServerUnread(prev => Math.max(0, prev - 1));
+        setServerNotifications((prev) =>
+          prev.map((n) => (n.id === notif.id ? { ...n, is_read: 1 } : n)),
+        );
+        setServerUnread((prev) => Math.max(0, prev - 1));
       } catch {}
     }
 
-    if (notif.link_type === 'chat') {
-      const senderName = notif.title ? notif.title.replace(/^Tin nhắn mới từ\s*/i, '').trim() : 'Người liên hệ';
+    if (notif.link_type === "chat") {
+      const senderName = notif.title
+        ? notif.title.replace(/^Tin nhắn mới từ\s*/i, "").trim()
+        : "Người liên hệ";
       let relatedJob = null;
       if (notif.link_id) {
-        if (notif.link_id.startsWith('thread_app_')) {
-          const appId = notif.link_id.replace('thread_app_', '');
-          const app = applications?.find(a => a.id === appId);
+        if (notif.link_id.startsWith("thread_app_")) {
+          const appId = notif.link_id.replace("thread_app_", "");
+          const app = applications?.find((a) => a.id === appId);
           if (app) {
-            relatedJob = jobs?.find(j => j.id === app.jobId);
+            relatedJob = jobs?.find((j) => j.id === app.jobId);
           }
-        } else if (notif.link_id.startsWith('thread_job_')) {
+        } else if (notif.link_id.startsWith("thread_job_")) {
           const match = notif.link_id.match(/^thread_job_([^_]+)/);
           if (match && match[1]) {
-            relatedJob = jobs?.find(j => j.id === match[1]);
+            relatedJob = jobs?.find((j) => j.id === match[1]);
           }
         }
       }
@@ -114,37 +147,37 @@ export default function NotificationBell({ onNavigateTab }) {
         name: senderName,
         company: senderName,
         applicantName: senderName,
-        jobTitle: relatedJob?.title || 'Trao đổi công việc',
-        jobId: relatedJob?.id
+        jobTitle: relatedJob?.title || "Trao đổi công việc",
+        jobId: relatedJob?.id,
       });
-    } else if (notif.link_type === 'freelance') {
-      navigateTab('freelance');
-    } else if (notif.link_type === 'application') {
-      if (currentUserRole === 'employer') {
-        navigateTab('employer');
+    } else if (notif.link_type === "freelance") {
+      navigateTab("freelance");
+    } else if (notif.link_type === "application") {
+      if (currentUserRole === "employer") {
+        navigateTab("employer");
       } else {
-        navigateTab('profile');
+        navigateTab("profile");
       }
-    } else if (notif.link_type === 'job') {
-      if (currentUserRole === 'employer') {
-        navigateTab('employer');
+    } else if (notif.link_type === "job") {
+      if (currentUserRole === "employer") {
+        navigateTab("employer");
       } else {
-        navigateTab('jobs');
+        navigateTab("jobs");
         if (notif.link_id) {
-          const targetJob = jobs?.find(j => j.id === notif.link_id);
+          const targetJob = jobs?.find((j) => j.id === notif.link_id);
           if (targetJob && setSelectedJobForDetail) {
             setSelectedJobForDetail(targetJob);
           }
         }
       }
-    } else if (currentUserRole === 'employer') {
-      navigateTab('employer');
+    } else if (currentUserRole === "employer") {
+      navigateTab("employer");
     }
     setShowNotifications(false);
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={panelRef}>
       <button
         onClick={() => {
           setShowNotifications(!showNotifications);
@@ -156,7 +189,7 @@ export default function NotificationBell({ onNavigateTab }) {
         <Bell className="w-4 h-4" />
         {totalUnreadCount > 0 && (
           <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-rose-500 text-[10px] font-bold text-white flex items-center justify-center animate-bounce shadow-md shadow-rose-500/50">
-            {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
+            {totalUnreadCount > 9 ? "9+" : totalUnreadCount}
           </span>
         )}
       </button>
@@ -197,8 +230,8 @@ export default function NotificationBell({ onNavigateTab }) {
                     onClick={() => handleNotificationClick(n)}
                     className={`p-3 rounded-xl border text-xs cursor-pointer transition-all ${
                       isUnread
-                        ? 'bg-indigo-950/40 border-indigo-500/40 hover:bg-indigo-950/60'
-                        : 'bg-slate-950/60 border-slate-800/80 hover:bg-slate-800/50 text-slate-400'
+                        ? "bg-indigo-950/40 border-indigo-500/40 hover:bg-indigo-950/60"
+                        : "bg-slate-950/60 border-slate-800/80 hover:bg-slate-800/50 text-slate-400"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -206,12 +239,22 @@ export default function NotificationBell({ onNavigateTab }) {
                         {isUnread && (
                           <span className="w-2 h-2 rounded-full bg-indigo-400 flex-shrink-0 animate-pulse" />
                         )}
-                        <p className={`font-semibold ${isUnread ? 'text-white' : 'text-slate-300'}`}>
-                          {n.title || 'Thông báo mới'}
+                        <p
+                          className={`font-semibold ${isUnread ? "text-white" : "text-slate-300"}`}
+                        >
+                          {n.title || "Thông báo mới"}
                         </p>
                       </div>
                       <span className="text-[10px] text-slate-500 flex-shrink-0">
-                        {n.created_at ? (typeof n.created_at === 'string' && n.created_at.includes('T') ? new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : n.created_at) : 'Vừa xong'}
+                        {n.created_at
+                          ? typeof n.created_at === "string" &&
+                            n.created_at.includes("T")
+                            ? new Date(n.created_at).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : n.created_at
+                          : "Vừa xong"}
                       </span>
                     </div>
                     {n.body && (

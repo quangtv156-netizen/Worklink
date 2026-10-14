@@ -17,7 +17,6 @@ import {
   Compass,
   MapPin,
   User,
-  Bookmark,
   Volume2,
   VolumeX,
   Building2,
@@ -38,14 +37,8 @@ const GigMapModule = lazy(() => import("../components/GigMapModule"));
 const ExternalJobsPanel = lazy(() => import("../components/ExternalJobsPanel"));
 
 export default function JobSeekerLayout({ onSwitchPortal }) {
-  const {
-    jobs,
-    currentUser,
-    savedJobIds,
-    logout,
-    setIsAuthModalOpen,
-    setIsCVAnalyzerOpen,
-  } = useApp();
+  const { jobs, currentUser, logout, setIsAuthModalOpen, setIsCVAnalyzerOpen } =
+    useApp();
 
   const [activeTab, setActiveTab] = useState("jobs"); // 'jobs' | 'hot_feed' | 'freelance' | 'gigs' | 'profile'
   const [isSoundMuted, setIsSoundMuted] = useState(() => soundFx.getMuted());
@@ -305,20 +298,6 @@ export default function JobSeekerLayout({ onSwitchPortal }) {
                 <VolumeX className="w-4 h-4 text-slate-500" />
               ) : (
                 <Volume2 className="w-4 h-4 text-emerald-400" />
-              )}
-            </button>
-
-            {/* Saved jobs button */}
-            <button
-              onClick={() => setActiveTab("profile")}
-              className="hidden sm:flex relative p-2 rounded-lg bg-slate-900/80 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer"
-              title="Việc làm đã lưu"
-            >
-              <Bookmark className="w-4 h-4" />
-              {savedJobIds.length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-indigo-500 text-[10px] font-bold text-white flex items-center justify-center animate-pulse">
-                  {savedJobIds.length}
-                </span>
               )}
             </button>
 

@@ -18,7 +18,9 @@ import applicationRoutes from "./routes/applicationRoutes.js";
 import freelanceRoutes from "./routes/freelanceRoutes.js";
 import gigRoutes from "./routes/gigRoutes.js";
 import ratingRoutes from "./routes/ratingRoutes.js";
-import notificationRoutes from "./routes/notificationRoutes.js";
+import notificationRoutes, {
+  createNotification,
+} from "./routes/notificationRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
@@ -121,12 +123,13 @@ app.use(
             connectSrc: ["'self'", "ws:", "wss:", "https:", "http:"],
             objectSrc: ["'none'"],
             mediaSrc: ["'self'", "data:", "blob:"],
-            frameSrc: ["'none'", "https://accounts.google.com"],
+            frameSrc: ["'self'", "https://accounts.google.com"],
             baseUri: ["'self'"],
             formAction: ["'self'"],
           },
         }
       : false,
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
     crossOriginEmbedderPolicy: false,
   }),
 );

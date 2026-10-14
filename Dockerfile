@@ -8,6 +8,8 @@ COPY public/ ./public/
 COPY src/ ./src/
 COPY shared/ ./shared/
 # Để trống VITE_API_URL => frontend gọi API cùng domain (same-origin)
+ARG VITE_GOOGLE_CLIENT_ID
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 RUN npm run build
 
 # ---------- Stage 2: production (Express phục vụ API + dist) ----------

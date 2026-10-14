@@ -150,39 +150,66 @@ export async function initDatabase() {
     console.log("✅ Đã kết nối thành công tới cơ sở dữ liệu PostgreSQL!");
 
     try {
-      // 1. Migration an toàn cho DB đã tồn tại trước khi tạo indexes
-      try {
-        await client.query(`
-          ALTER TABLE freelance_projects ADD COLUMN IF NOT EXISTS employer_id TEXT;
-          ALTER TABLE gig_tasks ADD COLUMN IF NOT EXISTS employer_id TEXT;
-          ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER DEFAULT 1;
-          ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT;
-          ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth TEXT;
-          ALTER TABLE users ADD COLUMN IF NOT EXISTS full_address TEXT;
-          ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_secret TEXT;
-          ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled INTEGER DEFAULT 0;
-          ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_quota_used INTEGER DEFAULT 0;
-          ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_quota_reset_date TEXT;
-          ALTER TABLE applications ADD COLUMN IF NOT EXISTS cv_file_path TEXT;
-          ALTER TABLE jobs ADD COLUMN IF NOT EXISTS moderation_status TEXT DEFAULT 'approved';
-          ALTER TABLE jobs ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
-          ALTER TABLE jobs ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP WITH TIME ZONE;
-          ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS is_read INTEGER DEFAULT 0;
-          ALTER TABLE cv_analyses ADD COLUMN IF NOT EXISTS cv_name TEXT;
-          ALTER TABLE cv_analyses ADD COLUMN IF NOT EXISTS ats_score INTEGER;
-          ALTER TABLE cv_analyses ADD COLUMN IF NOT EXISTS summary TEXT;
-          ALTER TABLE cv_analyses ADD COLUMN IF NOT EXISTS strengths TEXT;
-          ALTER TABLE cv_analyses ADD COLUMN IF NOT EXISTS improvements TEXT;
-          ALTER TABLE cv_analyses ADD COLUMN IF NOT EXISTS breakdown TEXT;
-          ALTER TABLE cv_analyses ADD COLUMN IF NOT EXISTS matched_jobs TEXT;
-          ALTER TABLE cv_analyses ALTER COLUMN match_score DROP NOT NULL;
-          ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_quota INTEGER DEFAULT 5;
-          ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
-          ALTER TABLE applications ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
-          ALTER TABLE cv_analyses ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
-          UPDATE users SET ai_quota = 5 WHERE ai_quota IS NULL;
-          UPDATE jobs SET status = 'active' WHERE status IS NULL;
-          CREATE TABLE IF NOT EXISTS audit_logs (
+      // 1) Schema TRƯỚC — tạo bảng nếu chưa có (CI / DB trống)
+      const schemaPath = path.join(__dirname, "..", "database", "schema.sql");
+      if (fs.existsSync(schemaPath)) {
+        try {
+          const schemaSql = fs.readFileSync(schemaPath, "utf8");
+          await client.query(schemaSql);
+          console.log("✅ Khởi tạo Schema PostgreSQL thành công");
+        } catch (schemaErr) {
+          // DB cũ có thể lệch cột — không chặn server; sẽ vá bằng ALTER từng câu
+          console.warn(
+            "[Schema] Cảnh báo khi chạy schema.sql:",
+            schemaErr.message,
+          );
+        }
+      }
+
+      // 2) Migration từng câu — tránh 1 lỗi làm hỏng cả batch (PG abort transaction)
+      const safeMigrations = [
+        `ALTER TABLE freelance_projects ADD COLUMN IF NOT EXISTS employer_id TEXT`,
+        `ALTER TABLE gig_tasks ADD COLUMN IF NOT EXISTS employer_id TEXT`,
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER DEFAULT 1`,
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT`,
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth TEXT`,
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS full_address TEXT`,
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_secret TEXT`,
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled INTEGER DEFAULT 0`,
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_quota_used INTEGER DEFAULT 0`,
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_quota_reset_date TEXT`,
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_quota INTEGER DEFAULT 5`,
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE`,
+        `ALTER TABLE applications ADD COLUMN IF NOT EXISTS job_id TEXT`,
+        `ALTER TABLE applications ADD COLUMN IF NOT EXISTS user_id TEXT`,
+        `ALTER TABLE applications ADD COLUMN IF NOT EXISTS applicant_name TEXT`,
+        `ALTER TABLE applications ADD COLUMN IF NOT EXISTS phone TEXT`,
+        `ALTER TABLE applications ADD COLUMN IF NOT EXISTS email TEXT`,
+        `ALTER TABLE applications ADD COLUMN IF NOT EXISTS note TEXT`,
+        `ALTER TABLE applications ADD COLUMN IF NOT EXISTS cv_name TEXT`,
+        `ALTER TABLE applications ADD COLUMN IF NOT EXISTS cv_file_path TEXT`,
+        `ALTER TABLE applications ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending'`,
+        `ALTER TABLE applications ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE`,
+        `ALTER TABLE jobs ADD COLUMN IF NOT EXISTS moderation_status TEXT DEFAULT 'approved'`,
+        `ALTER TABLE jobs ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending'`,
+        `ALTER TABLE jobs ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP WITH TIME ZONE`,
+        `ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS is_read INTEGER DEFAULT 0`,
+        `ALTER TABLE cv_analyses ADD COLUMN IF NOT EXISTS cv_name TEXT`,
+        `ALTER TABLE cv_analyses ADD COLUMN IF NOT EXISTS ats_score INTEGER`,
+        `ALTER TABLE cv_analyses ADD COLUMN IF NOT EXISTS summary TEXT`,
+        `ALTER TABLE cv_analyses ADD COLUMN IF NOT EXISTS strengths TEXT`,
+        `ALTER TABLE cv_analyses ADD COLUMN IF NOT EXISTS improvements TEXT`,
+        `ALTER TABLE cv_analyses ADD COLUMN IF NOT EXISTS breakdown TEXT`,
+        `ALTER TABLE cv_analyses ADD COLUMN IF NOT EXISTS matched_jobs TEXT`,
+        `ALTER TABLE cv_analyses ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE`,
+        `CREATE TABLE IF NOT EXISTS password_resets (
+            id SERIAL PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            email TEXT NOT NULL,
+            token TEXT NOT NULL,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+          )`,
+        `CREATE TABLE IF NOT EXISTS audit_logs (
             id TEXT PRIMARY KEY,
             admin_id TEXT,
             action TEXT NOT NULL,
@@ -190,46 +217,56 @@ export async function initDatabase() {
             details TEXT,
             ip_address TEXT,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-          );
-          ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS admin_id TEXT;
-          ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS target_id TEXT;
-          ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS details TEXT;
-          ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS ip_address TEXT;
-          CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC);
-          CREATE INDEX IF NOT EXISTS idx_audit_logs_admin_id ON audit_logs(admin_id);
-          CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
-          CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users(deleted_at);
-          CREATE INDEX IF NOT EXISTS idx_applications_deleted_at ON applications(deleted_at);
-          CREATE INDEX IF NOT EXISTS idx_cv_analyses_deleted_at ON cv_analyses(deleted_at);
-          CREATE INDEX IF NOT EXISTS idx_jobs_fts ON jobs USING gin(to_tsvector('simple', COALESCE(title, '') || ' ' || COALESCE(company, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(district, '') || ' ' || COALESCE(description, '') || ' ' || COALESCE(requirements, '') || ' ' || COALESCE(hashtags, '')));
-        `);
-      } catch (migErr) {
-        // Có thể bảng chưa tồn tại trong lần đầu chạy, sẽ được schema.sql tạo
-        console.warn("[Migration batch] Lỗi (đã bỏ qua):", migErr.message);
-      }
-
-      // Migration riêng cho profile completeness — không để batch lớn nuốt lỗi
-      const safeAlters = [
-        `ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth TEXT`,
-        `ALTER TABLE users ADD COLUMN IF NOT EXISTS full_address TEXT`,
+          )`,
+        `CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets(token)`,
+        `CREATE INDEX IF NOT EXISTS idx_password_resets_email ON password_resets(email)`,
+        `CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC)`,
+        `CREATE INDEX IF NOT EXISTS idx_audit_logs_admin_id ON audit_logs(admin_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action)`,
+        `CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users(deleted_at)`,
+        `CREATE INDEX IF NOT EXISTS idx_applications_deleted_at ON applications(deleted_at)`,
+        `CREATE INDEX IF NOT EXISTS idx_cv_analyses_deleted_at ON cv_analyses(deleted_at)`,
       ];
-      for (const sql of safeAlters) {
+
+      for (const sql of safeMigrations) {
         try {
           await client.query(sql);
-          console.log("[Migration] OK:", sql);
         } catch (e) {
-          console.warn("[Migration] Bỏ qua:", sql, e.message);
+          console.warn(
+            "[Migration] Bỏ qua:",
+            sql.split("\n")[0].slice(0, 80),
+            "—",
+            e.message,
+          );
         }
       }
 
-      const schemaPath = path.join(__dirname, "..", "database", "schema.sql");
-      if (fs.existsSync(schemaPath)) {
-        const schemaSql = fs.readFileSync(schemaPath, "utf8");
-        await client.query(schemaSql);
-        console.log("✅ Khởi tạo Schema PostgreSQL thành công");
+      // Cập nhật giá trị mặc định (không chặn nếu fail)
+      for (const sql of [
+        `UPDATE users SET ai_quota = 5 WHERE ai_quota IS NULL`,
+        `UPDATE jobs SET status = 'active' WHERE status IS NULL`,
+      ]) {
+        try {
+          await client.query(sql);
+        } catch (e) {
+          console.warn("[Migration] UPDATE bỏ qua:", e.message);
+        }
       }
 
-      await seedInitialData();
+      // FTS index — optional
+      try {
+        await client.query(
+          `CREATE INDEX IF NOT EXISTS idx_jobs_fts ON jobs USING gin(to_tsvector('simple', COALESCE(title, '') || ' ' || COALESCE(company, '') || ' ' || COALESCE(category, '') || ' ' || COALESCE(district, '') || ' ' || COALESCE(description, '') || ' ' || COALESCE(requirements, '') || ' ' || COALESCE(hashtags, '')))`,
+        );
+      } catch (e) {
+        console.warn("[Migration] FTS index bỏ qua:", e.message);
+      }
+
+      try {
+        await seedInitialData();
+      } catch (seedErr) {
+        console.warn("[Seed] Bỏ qua lỗi seed:", seedErr.message);
+      }
     } finally {
       client.release();
     }

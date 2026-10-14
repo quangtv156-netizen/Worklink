@@ -65,7 +65,21 @@ function MainContent() {
       </>
     );
   }
-
+  // Security guard: Non-admins cannot stay in admin portal;
+  // non-employers/non-admins cannot stay in employer portal
+  const effectivePortal = (() => {
+    if (activePortal === "admin" && currentUser?.role !== "admin") {
+      return currentUser?.role === "employer" ? "employer" : "seeker";
+    }
+    if (
+      activePortal === "employer" &&
+      currentUser?.role !== "employer" &&
+      currentUser?.role !== "admin"
+    ) {
+      return "seeker";
+    }
+    return activePortal;
+  })();
   return (
     <>
       <OfflineBanner />

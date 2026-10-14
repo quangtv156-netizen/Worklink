@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS users (
   expected_salary TEXT,
   cv_name TEXT,
   avatar TEXT,
+  date_of_birth TEXT,
+  full_address TEXT,
   is_verified INTEGER DEFAULT 1,
   token_version INTEGER DEFAULT 1,
   ai_quota INTEGER DEFAULT 5,

@@ -36,6 +36,8 @@ import {
 import { generalLimiter } from "./middleware/rateLimiter.js";
 import { observability } from "./services/observability.js";
 import { csrfProtection, getCsrfTokenHandler } from "./middleware/csrf.js";
+import { optionalAuth } from "./middleware/auth.js";
+import { requireCompleteProfile } from "./middleware/requireCompleteProfile.js";
 import { sentryErrorHandler } from "./services/sentry.js";
 import { setupSocketIORedisAdapter } from "./config/redis.js";
 import { startJobExpirationCron } from "./services/jobExpirationCron.js";
@@ -246,6 +248,19 @@ app.use(csrfProtection);
 
 // 🔑 Endpoint cấp phát CSRF token cho Frontend React SPA
 app.get("/api/csrf-token", csrfProtection, getCsrfTokenHandler);
+
+app.use(
+  [
+    "/api/applications",
+    "/api/chat",
+    "/api/cv",
+    "/api/ai",
+    "/api/ratings",
+    "/api/notifications",
+  ],
+  optionalAuth,
+  requireCompleteProfile,
+);
 
 // 🔒 Parser 15MB riêng cho route CV để xử lý base64 PDF (phải mount TRƯỚC parser 1MB chung)
 app.use(

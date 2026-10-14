@@ -17,7 +17,41 @@ import { uploadToS3, getPresignedUrl } from "../config/s3.js";
 import { enqueueCvAnalyzeJob } from "../config/queue.js";
 
 const require = createRequire(import.meta.url);
-const pdfParse = require("pdf-parse");
+/** pdf-parse v2 = class PDFParse; v1 = function(buffer) */
+let PDFParseLib = null;
+try {
+  const mod = require("pdf-parse");
+  PDFParseLib = mod.PDFParse || mod.default || mod;
+} catch (e) {
+  console.error(
+    "[CV] pdf-parse chưa được cài. Chạy: npm install pdf-parse —",
+    e.message,
+  );
+}
+
+async function extractPdfText(buf) {
+  if (!PDFParseLib) return "";
+  // v2: class with getText()
+  if (typeof PDFParseLib === "function" && PDFParseLib.prototype?.getText) {
+    const parser = new PDFParseLib({ data: buf });
+    try {
+      const result = await parser.getText();
+      return (result?.text || "").replace(/\s+/g, " ").trim();
+    } finally {
+      if (typeof parser.destroy === "function") {
+        try {
+          await parser.destroy();
+        } catch {}
+      }
+    }
+  }
+  // v1: function(buffer) -> { text }
+  if (typeof PDFParseLib === "function") {
+    const data = await PDFParseLib(buf);
+    return (data?.text || "").replace(/\s+/g, " ").trim();
+  }
+  return "";
+}
 
 const router = express.Router();
 
@@ -91,11 +125,16 @@ async function extractTextFromFile(filePath, originalName) {
   }
 
   if (ext === ".pdf") {
+    if (!PDFParseLib) {
+      console.error(
+        "[CV PDF] pdf-parse module missing — không thể đọc PDF trên server",
+      );
+      return "";
+    }
     try {
-      const data = await pdfParse(buf);
-      const text = (data.text || "").replace(/\s+/g, " ").trim();
+      const text = await extractPdfText(buf);
       if (text.length >= 40 && !isGarbledText(text)) {
-        console.log("[CV PDF] pdf-parse OK, length =", text.length);
+        console.log("[CV PDF] extract OK, length =", text.length);
         return text;
       }
       console.warn(
@@ -103,7 +142,7 @@ async function extractTextFromFile(filePath, originalName) {
         text.length,
       );
     } catch (e) {
-      console.warn("[CV PDF] pdf-parse failed:", e.message);
+      console.warn("[CV PDF] extract failed:", e.message);
     }
     return "";
   }
@@ -322,13 +361,23 @@ router.post(
 
       let fileBase64 = null;
       let detectedMime = mimetype;
+      const lowerName = originalname.toLowerCase();
 
-      if (!extractedText) {
+      // Luôn gửi base64 với PDF/DOCX để Gemini Vision đọc được khi text extract rỗng
+      if (
+        lowerName.endsWith(".pdf") ||
+        lowerName.endsWith(".docx") ||
+        lowerName.endsWith(".doc") ||
+        !extractedText
+      ) {
         const buf = fs.readFileSync(filePath);
-        fileBase64 = buf.toString("base64");
-        if (originalname.toLowerCase().endsWith(".pdf")) {
+        // Giới hạn ~4MB base64 để payload không quá lớn
+        if (buf.length <= 4 * 1024 * 1024) {
+          fileBase64 = buf.toString("base64");
+        }
+        if (lowerName.endsWith(".pdf")) {
           detectedMime = "application/pdf";
-        } else {
+        } else if (lowerName.endsWith(".docx") || lowerName.endsWith(".doc")) {
           detectedMime =
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
         }

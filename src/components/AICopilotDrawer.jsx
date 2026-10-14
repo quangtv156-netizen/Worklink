@@ -29,6 +29,7 @@ export default function AICopilotDrawer() {
 
   const [isOpen, setIsOpen] = useState(false);
   const [serverAiConfig, setServerAiConfig] = useState(null);
+  const [showKeyConfig, setShowKeyConfig] = useState(false);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [activePrompts, setActivePrompts] = useState([

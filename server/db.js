@@ -205,6 +205,21 @@ export async function initDatabase() {
         `);
       } catch (migErr) {
         // Có thể bảng chưa tồn tại trong lần đầu chạy, sẽ được schema.sql tạo
+        console.warn("[Migration batch] Lỗi (đã bỏ qua):", migErr.message);
+      }
+
+      // Migration riêng cho profile completeness — không để batch lớn nuốt lỗi
+      const safeAlters = [
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth TEXT`,
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS full_address TEXT`,
+      ];
+      for (const sql of safeAlters) {
+        try {
+          await client.query(sql);
+          console.log("[Migration] OK:", sql);
+        } catch (e) {
+          console.warn("[Migration] Bỏ qua:", sql, e.message);
+        }
       }
 
       const schemaPath = path.join(__dirname, "..", "database", "schema.sql");

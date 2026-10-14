@@ -98,6 +98,8 @@ export default function ProfileSetupModal() {
         phone: saved.phone,
         district: saved.district,
         city: saved.city,
+        dateOfBirth: saved.dateOfBirth || form.dateOfBirth,
+        fullAddress: saved.fullAddress || form.fullAddress.trim(),
       }));
       showToast("Đã lưu thông tin cá nhân. Chào mừng bạn đến với WorkLink!");
     } catch (err) {

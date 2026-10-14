@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
-import { 
-  Bookmark, 
-  Send, 
-  FileText, 
-  MapPin, 
-  Clock, 
-  DollarSign, 
-  ShieldCheck, 
-  Trash2, 
-  Building2, 
+import React, { useState } from "react";
+import { useApp } from "../context/AppContext";
+import {
+  Bookmark,
+  Send,
+  FileText,
+  MapPin,
+  Clock,
+  DollarSign,
+  ShieldCheck,
+  Trash2,
+  Building2,
   Sparkles,
   Edit3,
   Save,
@@ -20,41 +20,45 @@ import {
   KeyRound,
   X,
   Download,
-  Camera
-} from 'lucide-react';
-import { soundFx } from '../services/soundEffects';
+  Camera,
+} from "lucide-react";
+import { soundFx } from "../services/soundEffects";
 
-import { API_BASE } from '../config/apiBase.js';
+import { API_BASE } from "../config/apiBase.js";
 
 export default function JobSeekerProfile() {
-  const { 
+  const {
     currentUser,
-    userProfile, 
+    userProfile,
     setUserProfile,
-    updateProfile, 
-    savedJobIds, 
-    jobs, 
-    toggleSaveJob, 
-    applications, 
+    updateProfile,
+    savedJobIds,
+    jobs,
+    toggleSaveJob,
+    applications,
     setSelectedJobForDetail,
     setActiveChatRecipient,
     setIsCVAnalyzerOpen,
     setIsAuthModalOpen,
     withdrawApplication,
     changePassword,
-    showToast 
+    showToast,
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState('applied'); // 'applied' | 'saved' | 'info'
+  const [activeTab, setActiveTab] = useState("applied"); // 'applied' | 'saved' | 'info'
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState(() => userProfile || {});
-  const [appStatusFilter, setAppStatusFilter] = useState('ALL');
+  const [appStatusFilter, setAppStatusFilter] = useState("ALL");
   const [appToWithdraw, setAppToWithdraw] = useState(null);
 
   // Đổi mật khẩu modal states
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [pwdLoading, setPwdLoading] = useState(false);
-  const [pwdForm, setPwdForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [pwdForm, setPwdForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
 
   // Tải ảnh avatar states & ref
   const fileInputRef = React.useRef(null);
@@ -64,13 +68,13 @@ export default function JobSeekerProfile() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      showToast('Vui lòng chọn file hình ảnh (PNG, JPG, JPEG, WEBP)', 'error');
+    if (!file.type.startsWith("image/")) {
+      showToast("Vui lòng chọn file hình ảnh (PNG, JPG, JPEG, WEBP)", "error");
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      showToast('Kích thước ảnh không vượt quá 5MB', 'error');
+      showToast("Kích thước ảnh không vượt quá 5MB", "error");
       return;
     }
 
@@ -82,24 +86,24 @@ export default function JobSeekerProfile() {
         const updated = {
           ...(userProfile || {}),
           ...editForm,
-          avatar: base64Data
+          avatar: base64Data,
         };
-        setEditForm(prev => ({ ...prev, avatar: base64Data }));
+        setEditForm((prev) => ({ ...prev, avatar: base64Data }));
         if (updateProfile) {
           await updateProfile(updated);
         } else {
           setUserProfile(updated);
         }
         soundFx.playSuccess();
-        showToast('🎉 Đã cập nhật ảnh đại diện mới thành công!', 'success');
+        showToast("🎉 Đã cập nhật ảnh đại diện mới thành công!", "success");
       } catch (err) {
-        showToast('Không thể cập nhật ảnh đại diện: ' + err.message, 'error');
+        showToast("Không thể cập nhật ảnh đại diện: " + err.message, "error");
       } finally {
         setAvatarUploading(false);
       }
     };
     reader.onerror = () => {
-      showToast('Lỗi đọc file ảnh', 'error');
+      showToast("Lỗi đọc file ảnh", "error");
       setAvatarUploading(false);
     };
     reader.readAsDataURL(file);
@@ -110,34 +114,34 @@ export default function JobSeekerProfile() {
       const updated = {
         ...(userProfile || {}),
         ...editForm,
-        avatar: ''
+        avatar: "",
       };
-      setEditForm(prev => ({ ...prev, avatar: '' }));
+      setEditForm((prev) => ({ ...prev, avatar: "" }));
       if (updateProfile) {
         await updateProfile(updated);
       } else {
         setUserProfile(updated);
       }
-      showToast('Đã gỡ ảnh đại diện', 'info');
+      showToast("Đã gỡ ảnh đại diện", "info");
     } catch (err) {
-      showToast('Lỗi gỡ ảnh đại diện: ' + err.message, 'error');
+      showToast("Lỗi gỡ ảnh đại diện: " + err.message, "error");
     }
   };
 
   const handleChangePasswordSubmit = async (e) => {
     e.preventDefault();
     if (pwdForm.newPassword !== pwdForm.confirmPassword) {
-      showToast('Mật khẩu xác nhận không khớp!', 'error');
+      showToast("Mật khẩu xác nhận không khớp!", "error");
       return;
     }
     setPwdLoading(true);
     try {
       await changePassword({
         currentPassword: pwdForm.currentPassword,
-        newPassword: pwdForm.newPassword
+        newPassword: pwdForm.newPassword,
       });
       setIsChangePasswordOpen(false);
-      setPwdForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setPwdForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch {
       // Error handled by context
     } finally {
@@ -148,19 +152,29 @@ export default function JobSeekerProfile() {
   React.useEffect(() => {
     if (!isEditing) {
       if (userProfile) {
-        setEditForm(userProfile);
+        setEditForm({
+          ...userProfile,
+          dateOfBirth:
+            userProfile.dateOfBirth || currentUser?.dateOfBirth || "",
+          fullAddress:
+            userProfile.fullAddress || currentUser?.fullAddress || "",
+          city: userProfile.city || currentUser?.city || "",
+          district: userProfile.district || currentUser?.district || "",
+        });
       } else if (currentUser) {
         setEditForm({
-          name: currentUser.name || '',
-          title: 'Ứng viên WorkLink',
-          phone: currentUser.phone || '',
-          email: currentUser.email || '',
-          district: currentUser.district || 'Cầu Giấy',
-          city: 'Hà Nội',
-          preferredShift: 'Tối & Cuối tuần',
-          expectedSalary: '35.000đ/giờ',
-          skills: ['Giao tiếp', 'Linh hoạt'],
-          bio: ''
+          name: currentUser.name || "",
+          title: currentUser.title || "Ứng viên WorkLink",
+          phone: currentUser.phone || "",
+          email: currentUser.email || "",
+          district: currentUser.district || "",
+          city: currentUser.city || "Hà Nội",
+          dateOfBirth: currentUser.dateOfBirth || "",
+          fullAddress: currentUser.fullAddress || "",
+          preferredShift: currentUser.preferredShift || "",
+          expectedSalary: currentUser.expectedSalary || "",
+          skills: currentUser.skills || [],
+          bio: currentUser.bio || "",
         });
       }
     }
@@ -176,7 +190,8 @@ export default function JobSeekerProfile() {
           </div>
 
           <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 inline-flex items-center gap-1.5 mb-3">
-            <Sparkles className="w-3 h-3 text-indigo-400" /> Khu vực bảo mật cá nhân
+            <Sparkles className="w-3 h-3 text-indigo-400" /> Khu vực bảo mật cá
+            nhân
           </span>
 
           <h2 className="text-xl sm:text-2xl font-black text-white mb-2">
@@ -184,7 +199,9 @@ export default function JobSeekerProfile() {
           </h2>
 
           <p className="text-xs sm:text-sm text-slate-400 leading-relaxed mb-6">
-            Hồ sơ cá nhân, thông tin liên lạc và danh sách các đơn ứng tuyển của bạn được bảo mật tuyệt đối. Vui lòng đăng nhập để quản lý và theo dõi phản hồi từ nhà tuyển dụng.
+            Hồ sơ cá nhân, thông tin liên lạc và danh sách các đơn ứng tuyển của
+            bạn được bảo mật tuyệt đối. Vui lòng đăng nhập để quản lý và theo
+            dõi phản hồi từ nhà tuyển dụng.
           </p>
 
           <button
@@ -202,52 +219,65 @@ export default function JobSeekerProfile() {
     );
   }
 
-  const safeProfile = userProfile || {
-    name: currentUser?.name || 'Ứng viên WorkLink',
-    title: currentUser?.title || 'Ứng viên tìm việc',
-    phone: currentUser?.phone || '',
-    email: currentUser?.email || '',
-    district: currentUser?.district || 'Cầu Giấy',
-    city: currentUser?.city || 'Hà Nội',
-    preferredShift: 'Tối & Cuối tuần',
-    expectedSalary: '35.000đ/giờ',
-    skills: ['Giao tiếp', 'Linh hoạt'],
-    bio: '',
-    avatar: currentUser?.avatar || '',
-    cvName: currentUser?.cv_name || 'CV_UngVien.pdf'
+  const safeProfile = {
+    name: userProfile?.name || currentUser?.name || "Ứng viên WorkLink",
+    title: userProfile?.title || currentUser?.title || "Ứng viên tìm việc",
+    phone: userProfile?.phone || currentUser?.phone || "",
+    email: userProfile?.email || currentUser?.email || "",
+    district: userProfile?.district || currentUser?.district || "",
+    city: userProfile?.city || currentUser?.city || "",
+    dateOfBirth: userProfile?.dateOfBirth || currentUser?.dateOfBirth || "",
+    fullAddress: userProfile?.fullAddress || currentUser?.fullAddress || "",
+    preferredShift:
+      userProfile?.preferredShift || currentUser?.preferredShift || "",
+    expectedSalary:
+      userProfile?.expectedSalary || currentUser?.expectedSalary || "",
+    skills: userProfile?.skills || currentUser?.skills || [],
+    bio: userProfile?.bio || currentUser?.bio || "",
+    avatar: userProfile?.avatar || currentUser?.avatar || "",
+    cvName:
+      userProfile?.cvName || currentUser?.cvName || currentUser?.cv_name || "",
   };
 
-  const savedJobs = jobs.filter(j => savedJobIds.includes(j.id));
+  const savedJobs = jobs.filter((j) => savedJobIds.includes(j.id));
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
+    const payload = {
+      ...editForm,
+      date_of_birth: editForm.dateOfBirth || "",
+      full_address: editForm.fullAddress || "",
+    };
     if (updateProfile) {
-      await updateProfile(editForm);
+      await updateProfile(payload);
     } else {
       setUserProfile(editForm);
-      showToast('Đã lưu thông tin hồ sơ cá nhân thành công!');
+      showToast("Đã lưu thông tin hồ sơ cá nhân thành công!");
     }
     setIsEditing(false);
   };
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      
       {/* User Header Profile Card */}
       <div className="p-6 rounded-3xl bg-gradient-to-r from-indigo-950/50 via-slate-900 to-slate-950 border border-slate-800 shadow-xl mb-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             {/* Avatar với tính năng Tải ảnh từ máy tính */}
-            <div 
-              className="relative group/avatar cursor-pointer shrink-0" 
-              onClick={() => fileInputRef.current?.click()} 
+            <div
+              className="relative group/avatar cursor-pointer shrink-0"
+              onClick={() => fileInputRef.current?.click()}
               title="Nhấp để tải ảnh đại diện từ máy tính"
             >
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white text-2xl font-black shadow-lg shadow-indigo-600/30 overflow-hidden border-2 border-indigo-400/40 group-hover/avatar:border-white transition-all">
                 {safeProfile.avatar ? (
-                  <img src={safeProfile.avatar} alt={safeProfile.name} className="w-full h-full object-cover" />
+                  <img
+                    src={safeProfile.avatar}
+                    alt={safeProfile.name}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
-                  safeProfile.name?.charAt(0) || 'U'
+                  safeProfile.name?.charAt(0) || "U"
                 )}
               </div>
               <div className="absolute inset-0 bg-black/60 rounded-2xl opacity-0 group-hover/avatar:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[10px] font-bold gap-0.5 pointer-events-none">
@@ -272,7 +302,9 @@ export default function JobSeekerProfile() {
 
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-black text-white">{safeProfile.name}</h1>
+                <h1 className="text-xl sm:text-2xl font-black text-white">
+                  {safeProfile.name}
+                </h1>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
                   <ShieldCheck className="w-3 h-3" />
                   Đã xác minh
@@ -296,11 +328,43 @@ export default function JobSeekerProfile() {
                   </button>
                 )}
               </div>
-              <p className="text-xs text-indigo-400 font-medium">{safeProfile.title}</p>
+              <p className="text-xs text-indigo-400 font-medium">
+                {safeProfile.title}
+              </p>
               <div className="flex items-center gap-3 text-xs text-slate-400 mt-1 flex-wrap">
-                <span className="flex items-center gap-1"><MapPin className="w-3 h-3 text-slate-500" /> {safeProfile.district}, {safeProfile.city}</span>
-                <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-slate-500" /> Rảnh: {safeProfile.preferredShift}</span>
-                <span className="flex items-center gap-1"><DollarSign className="w-3 h-3 text-slate-500" /> Mong muốn: {safeProfile.expectedSalary}</span>
+                {(safeProfile.district || safeProfile.city) && (
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-3 h-3 text-slate-500" />{" "}
+                    {[safeProfile.district, safeProfile.city]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </span>
+                )}
+                {safeProfile.fullAddress && (
+                  <span
+                    className="flex items-center gap-1 text-slate-500"
+                    title={safeProfile.fullAddress}
+                  >
+                    📍 {safeProfile.fullAddress}
+                  </span>
+                )}
+                {safeProfile.dateOfBirth && (
+                  <span className="flex items-center gap-1">
+                    🎂 {safeProfile.dateOfBirth}
+                  </span>
+                )}
+                {safeProfile.preferredShift && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-slate-500" /> Rảnh:{" "}
+                    {safeProfile.preferredShift}
+                  </span>
+                )}
+                {safeProfile.expectedSalary && (
+                  <span className="flex items-center gap-1">
+                    <DollarSign className="w-3 h-3 text-slate-500" /> Mong muốn:{" "}
+                    {safeProfile.expectedSalary}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -334,59 +398,133 @@ export default function JobSeekerProfile() {
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all"
             >
               <Edit3 className="w-3.5 h-3.5" />
-              <span>{isEditing ? 'Đóng' : 'Chỉnh sửa'}</span>
+              <span>{isEditing ? "Đóng" : "Chỉnh sửa"}</span>
             </button>
           </div>
         </div>
 
         {/* Profile Edit Form */}
         {isEditing && (
-          <form onSubmit={handleSaveProfile} className="mt-6 pt-6 border-t border-slate-800 space-y-4 animate-fadeIn">
+          <form
+            onSubmit={handleSaveProfile}
+            className="mt-6 pt-6 border-t border-slate-800 space-y-4 animate-fadeIn"
+          >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Họ và tên</label>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Họ và tên
+                </label>
                 <input
                   type="text"
                   value={editForm.name}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, name: e.target.value }))
+                  }
                   className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white"
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Chức danh / Nghề nghiệp hiện tại</label>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Chức danh / Nghề nghiệp hiện tại
+                </label>
                 <input
                   type="text"
                   value={editForm.title}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, title: e.target.value }))
+                  }
                   className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white"
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Số điện thoại</label>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Số điện thoại
+                </label>
                 <input
                   type="tel"
                   value={editForm.phone}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, phone: e.target.value }))
+                  }
                   className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white"
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Khu vực sinh sống</label>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Ngày sinh
+                </label>
+                <input
+                  type="date"
+                  value={editForm.dateOfBirth || ""}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      dateOfBirth: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Tỉnh / Thành phố
+                </label>
                 <input
                   type="text"
-                  value={editForm.district}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, district: e.target.value }))}
+                  value={editForm.city || ""}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, city: e.target.value }))
+                  }
+                  placeholder="VD: Hà Nội"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Quận / Huyện
+                </label>
+                <input
+                  type="text"
+                  value={editForm.district || ""}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      district: e.target.value,
+                    }))
+                  }
+                  placeholder="VD: Cầu Giấy"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Địa chỉ chi tiết
+                </label>
+                <input
+                  type="text"
+                  value={editForm.fullAddress || ""}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      fullAddress: e.target.value,
+                    }))
+                  }
+                  placeholder="Số nhà, đường, phường/xã..."
                   className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-bold text-slate-300 block mb-1">Mô tả bản thân & Kỹ năng</label>
+              <label className="text-xs font-bold text-slate-300 block mb-1">
+                Mô tả bản thân & Kỹ năng
+              </label>
               <textarea
                 rows="2"
                 value={editForm.bio}
-                onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))}
+                onChange={(e) =>
+                  setEditForm((prev) => ({ ...prev, bio: e.target.value }))
+                }
                 className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white resize-none"
               />
             </div>
@@ -407,11 +545,11 @@ export default function JobSeekerProfile() {
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-slate-800 pb-3 mb-6">
         <button
-          onClick={() => setActiveTab('applied')}
+          onClick={() => setActiveTab("applied")}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
-            activeTab === 'applied'
-              ? 'bg-indigo-600 text-white shadow-md'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+            activeTab === "applied"
+              ? "bg-indigo-600 text-white shadow-md"
+              : "text-slate-400 hover:text-white hover:bg-slate-800/60"
           }`}
         >
           <Send className="w-4 h-4" />
@@ -419,11 +557,11 @@ export default function JobSeekerProfile() {
         </button>
 
         <button
-          onClick={() => setActiveTab('saved')}
+          onClick={() => setActiveTab("saved")}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
-            activeTab === 'saved'
-              ? 'bg-indigo-600 text-white shadow-md'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+            activeTab === "saved"
+              ? "bg-indigo-600 text-white shadow-md"
+              : "text-slate-400 hover:text-white hover:bg-slate-800/60"
           }`}
         >
           <Bookmark className="w-4 h-4" />
@@ -432,25 +570,27 @@ export default function JobSeekerProfile() {
       </div>
 
       {/* TAB 1: APPLIED JOBS */}
-      {activeTab === 'applied' && (
+      {activeTab === "applied" && (
         <div className="space-y-4">
           {/* Status Filter Chips */}
           <div className="flex items-center gap-1.5 flex-wrap bg-slate-900/60 p-2.5 rounded-2xl border border-slate-800">
-            <span className="text-xs text-slate-400 font-semibold px-2">Trạng thái:</span>
+            <span className="text-xs text-slate-400 font-semibold px-2">
+              Trạng thái:
+            </span>
             {[
-              { id: 'ALL', label: 'Tất cả' },
-              { id: 'pending', label: '⏳ Chờ duyệt' },
-              { id: 'reviewed', label: '👀 Đã xem' },
-              { id: 'interview', label: '🎉 Mời phỏng vấn' },
-              { id: 'rejected', label: '❌ Chưa phù hợp' }
-            ].map(st => (
+              { id: "ALL", label: "Tất cả" },
+              { id: "pending", label: "⏳ Chờ duyệt" },
+              { id: "reviewed", label: "👀 Đã xem" },
+              { id: "interview", label: "🎉 Mời phỏng vấn" },
+              { id: "rejected", label: "❌ Chưa phù hợp" },
+            ].map((st) => (
               <button
                 key={st.id}
                 onClick={() => setAppStatusFilter(st.id)}
                 className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                   appStatusFilter === st.id
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800'
+                    ? "bg-indigo-600 text-white shadow-md"
+                    : "bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800"
                 }`}
               >
                 {st.label}
@@ -459,8 +599,8 @@ export default function JobSeekerProfile() {
           </div>
 
           {(() => {
-            const filteredApplications = applications.filter(app => {
-              if (appStatusFilter === 'ALL') return true;
+            const filteredApplications = applications.filter((app) => {
+              if (appStatusFilter === "ALL") return true;
               return app.status === appStatusFilter;
             });
 
@@ -469,9 +609,9 @@ export default function JobSeekerProfile() {
                 <div className="text-center py-12 bg-slate-900/50 rounded-2xl border border-slate-800">
                   <Send className="w-10 h-10 text-slate-600 mx-auto mb-2" />
                   <p className="text-sm font-semibold text-slate-400">
-                    {applications.length === 0 
-                      ? 'Bạn chưa nộp hồ sơ ứng tuyển công việc nào' 
-                      : 'Không có hồ sơ nào ở trạng thái này'}
+                    {applications.length === 0
+                      ? "Bạn chưa nộp hồ sơ ứng tuyển công việc nào"
+                      : "Không có hồ sơ nào ở trạng thái này"}
                   </p>
                 </div>
               );
@@ -484,17 +624,24 @@ export default function JobSeekerProfile() {
               >
                 <div>
                   <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <h4 className="text-base font-bold text-white">{app.jobTitle}</h4>
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                      app.status === 'interview' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
-                      app.status === 'reviewed' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' :
-                      app.status === 'rejected' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
-                      'bg-slate-800 text-slate-300 border border-slate-700'
-                    }`}>
-                      {app.status === 'interview' && '🎉 Mời phỏng vấn'}
-                      {app.status === 'reviewed' && '👀 Đã xem hồ sơ'}
-                      {app.status === 'rejected' && '❌ Chưa phù hợp'}
-                      {app.status === 'pending' && '⏳ Chờ duyệt'}
+                    <h4 className="text-base font-bold text-white">
+                      {app.jobTitle}
+                    </h4>
+                    <span
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                        app.status === "interview"
+                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                          : app.status === "reviewed"
+                            ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
+                            : app.status === "rejected"
+                              ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                              : "bg-slate-800 text-slate-300 border border-slate-700"
+                      }`}
+                    >
+                      {app.status === "interview" && "🎉 Mời phỏng vấn"}
+                      {app.status === "reviewed" && "👀 Đã xem hồ sơ"}
+                      {app.status === "rejected" && "❌ Chưa phù hợp"}
+                      {app.status === "pending" && "⏳ Chờ duyệt"}
                     </span>
                   </div>
 
@@ -508,35 +655,39 @@ export default function JobSeekerProfile() {
                       <button
                         onClick={async () => {
                           try {
-                            const res = await fetch(`${API_BASE}/api/applications/${app.id}/cv`, {
-                              credentials: 'include'
-                            });
-                            if (!res.ok) throw new Error('Không thể tải file CV');
+                            const res = await fetch(
+                              `${API_BASE}/api/applications/${app.id}/cv`,
+                              {
+                                credentials: "include",
+                              },
+                            );
+                            if (!res.ok)
+                              throw new Error("Không thể tải file CV");
                             const blob = await res.blob();
                             const url = window.URL.createObjectURL(blob);
-                            const a = document.createElement('a');
+                            const a = document.createElement("a");
                             a.href = url;
-                            a.download = app.cvName || 'CV_UngVien.pdf';
+                            a.download = app.cvName || "CV_UngVien.pdf";
                             document.body.appendChild(a);
                             a.click();
                             a.remove();
                             window.URL.revokeObjectURL(url);
-                            showToast('Đang tải file CV...', 'success');
+                            showToast("Đang tải file CV...", "success");
                           } catch (err) {
-                            showToast(err.message || 'Lỗi tải CV', 'error');
+                            showToast(err.message || "Lỗi tải CV", "error");
                           }
                         }}
                         className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 hover:underline cursor-pointer font-medium"
                         title="Bấm để tải lại file CV bạn đã nộp"
                       >
                         <FileText className="w-3.5 h-3.5 text-indigo-400" />
-                        {app.cvName || 'CV_UngVien.pdf'}
+                        {app.cvName || "CV_UngVien.pdf"}
                         <Download className="w-3 h-3 ml-0.5" />
                       </button>
                     ) : (
                       <span className="flex items-center gap-1">
                         <FileText className="w-3 h-3 text-slate-500" />
-                        {app.cvName || 'CV_UngVien.pdf'}
+                        {app.cvName || "CV_UngVien.pdf"}
                       </span>
                     )}
                     <span>• Nộp lúc: {app.appliedAt}</span>
@@ -560,7 +711,7 @@ export default function JobSeekerProfile() {
                         jobId: app.jobId,
                         appId: app.id,
                         applicantName: app.applicantName,
-                        threadId: `thread_app_${app.id}`
+                        threadId: `thread_app_${app.id}`,
                       });
                     }}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-white border border-slate-700 hover:border-indigo-500/50 text-xs font-bold transition-all cursor-pointer"
@@ -585,12 +736,14 @@ export default function JobSeekerProfile() {
       )}
 
       {/* TAB 2: SAVED JOBS */}
-      {activeTab === 'saved' && (
+      {activeTab === "saved" && (
         <div className="space-y-3">
           {savedJobs.length === 0 ? (
             <div className="text-center py-12 bg-slate-900/50 rounded-2xl border border-slate-800">
               <Bookmark className="w-10 h-10 text-slate-600 mx-auto mb-2" />
-              <p className="text-sm font-semibold text-slate-400">Bạn chưa lưu công việc nào</p>
+              <p className="text-sm font-semibold text-slate-400">
+                Bạn chưa lưu công việc nào
+              </p>
             </div>
           ) : (
             savedJobs.map((job) => (
@@ -598,7 +751,7 @@ export default function JobSeekerProfile() {
                 key={job.id}
                 className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-4"
               >
-                <div 
+                <div
                   onClick={() => setSelectedJobForDetail(job)}
                   className="cursor-pointer flex-1"
                 >
@@ -606,7 +759,10 @@ export default function JobSeekerProfile() {
                     {job.title}
                   </h4>
                   <p className="text-xs text-slate-400">
-                    {job.company} • {job.district} • Lương: <strong className="text-indigo-300">{job.salaryDisplay}</strong>
+                    {job.company} • {job.district} • Lương:{" "}
+                    <strong className="text-indigo-300">
+                      {job.salaryDisplay}
+                    </strong>
                   </p>
                 </div>
 
@@ -632,15 +788,25 @@ export default function JobSeekerProfile() {
                 <AlertTriangle className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="text-base font-bold text-white">Xác nhận rút hồ sơ ứng tuyển?</h4>
-                <p className="text-xs text-slate-400">Bạn có thể nộp lại hồ sơ sau này nếu thay đổi ý định.</p>
+                <h4 className="text-base font-bold text-white">
+                  Xác nhận rút hồ sơ ứng tuyển?
+                </h4>
+                <p className="text-xs text-slate-400">
+                  Bạn có thể nộp lại hồ sơ sau này nếu thay đổi ý định.
+                </p>
               </div>
             </div>
 
             <div className="p-3.5 bg-slate-950/80 rounded-xl border border-slate-800 text-xs text-slate-300">
-              <p className="font-bold text-white mb-0.5">{appToWithdraw.jobTitle}</p>
-              <p className="text-indigo-400 font-semibold">{appToWithdraw.company}</p>
-              <p className="text-slate-500 text-[11px] mt-1">Đã nộp lúc: {appToWithdraw.appliedAt}</p>
+              <p className="font-bold text-white mb-0.5">
+                {appToWithdraw.jobTitle}
+              </p>
+              <p className="text-indigo-400 font-semibold">
+                {appToWithdraw.company}
+              </p>
+              <p className="text-slate-500 text-[11px] mt-1">
+                Đã nộp lúc: {appToWithdraw.appliedAt}
+              </p>
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2">
@@ -667,11 +833,11 @@ export default function JobSeekerProfile() {
 
       {/* Change Password Modal */}
       {isChangePasswordOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn"
           onClick={() => setIsChangePasswordOpen(false)}
         >
-          <div 
+          <div
             className="w-full max-w-md bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl p-6 overflow-hidden relative"
             onClick={(e) => e.stopPropagation()}
           >
@@ -680,7 +846,9 @@ export default function JobSeekerProfile() {
                 <div className="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
                   <KeyRound className="w-4 h-4" />
                 </div>
-                <h3 className="text-base font-bold text-white">Đổi mật khẩu tài khoản</h3>
+                <h3 className="text-base font-bold text-white">
+                  Đổi mật khẩu tài khoản
+                </h3>
               </div>
               <button
                 onClick={() => setIsChangePasswordOpen(false)}
@@ -692,38 +860,59 @@ export default function JobSeekerProfile() {
 
             <form onSubmit={handleChangePasswordSubmit} className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">Mật khẩu hiện tại</label>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">
+                  Mật khẩu hiện tại
+                </label>
                 <input
                   type="password"
                   required
                   value={pwdForm.currentPassword}
-                  onChange={(e) => setPwdForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                  onChange={(e) =>
+                    setPwdForm((prev) => ({
+                      ...prev,
+                      currentPassword: e.target.value,
+                    }))
+                  }
                   placeholder="••••••••"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">Mật khẩu mới (Tối thiểu 8 ký tự)</label>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">
+                  Mật khẩu mới (Tối thiểu 8 ký tự)
+                </label>
                 <input
                   type="password"
                   required
                   minLength={8}
                   value={pwdForm.newPassword}
-                  onChange={(e) => setPwdForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                  onChange={(e) =>
+                    setPwdForm((prev) => ({
+                      ...prev,
+                      newPassword: e.target.value,
+                    }))
+                  }
                   placeholder="••••••••"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">Xác nhận mật khẩu mới</label>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">
+                  Xác nhận mật khẩu mới
+                </label>
                 <input
                   type="password"
                   required
                   minLength={8}
                   value={pwdForm.confirmPassword}
-                  onChange={(e) => setPwdForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  onChange={(e) =>
+                    setPwdForm((prev) => ({
+                      ...prev,
+                      confirmPassword: e.target.value,
+                    }))
+                  }
                   placeholder="••••••••"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500"
                 />
@@ -754,7 +943,6 @@ export default function JobSeekerProfile() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

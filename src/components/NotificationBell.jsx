@@ -55,6 +55,13 @@ export default function NotificationBell({ onNavigateTab }) {
     }
   };
 
+  // Nhà tuyển dụng: các tab nằm trong EmployerDashboard → báo qua sự kiện
+  const goEmployerTab = (tab) => {
+    window.dispatchEvent(
+      new CustomEvent("worklink:employer-tab", { detail: tab }),
+    );
+  };
+
   const fetchNotifications = useCallback(async () => {
     if (!currentUser) return;
     try {
@@ -122,6 +129,9 @@ export default function NotificationBell({ onNavigateTab }) {
       } catch {}
     }
 
+    const isEmployerSide =
+      currentUserRole === "employer" || currentUser?.role === "employer";
+
     if (notif.link_type === "chat") {
       const senderName = notif.title
         ? notif.title.replace(/^Tin nhắn mới từ\s*/i, "").trim()
@@ -151,16 +161,20 @@ export default function NotificationBell({ onNavigateTab }) {
         jobId: relatedJob?.id,
       });
     } else if (notif.link_type === "freelance") {
-      navigateTab("freelance");
+      if (isEmployerSide) {
+        goEmployerTab("freelance");
+      } else {
+        navigateTab("freelance");
+      }
     } else if (notif.link_type === "application") {
-      if (currentUserRole === "employer") {
-        navigateTab("employer");
+      if (isEmployerSide) {
+        goEmployerTab("applicants");
       } else {
         navigateTab("profile");
       }
     } else if (notif.link_type === "job") {
-      if (currentUserRole === "employer") {
-        navigateTab("employer");
+      if (isEmployerSide) {
+        goEmployerTab("manage");
       } else {
         navigateTab("jobs");
         if (notif.link_id) {
@@ -170,8 +184,8 @@ export default function NotificationBell({ onNavigateTab }) {
           }
         }
       }
-    } else if (currentUserRole === "employer") {
-      navigateTab("employer");
+    } else if (isEmployerSide) {
+      goEmployerTab("manage");
     }
     setShowNotifications(false);
   };
